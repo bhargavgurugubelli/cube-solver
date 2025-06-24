@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rubik's Cube Solver</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 16px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    pre {
+      background-color: #f4f4f4;
+      padding: 15px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Rubik's Cube Solver</h1>
+  <button onclick="scrambleCube()">Scramble</button>
+  <button onclick="solveCube()">Solve</button>
+
+  <pre id="output">Cube ready..</pre>
+
+  <script>
+    //  Cube with only front face rotation implemented
+    class RubiksCube {
+      constructor() {
+        // Each face: 9 tiles,
+        this.faces = {
+          U: Array(9).fill('W'), 
+
+          D: Array(9).fill('Y'), 
+
+          F: Array(9).fill('G'), 
+
+          B: Array(9).fill('B'), 
+
+          L: Array(9).fill('O'), 
+
+          R: Array(9).fill('R')  
+
+        };
+      }
+
+      rotateFace(face, clockwise = true) {
+        // Rotate the face's 3x3 grid
+        const rotateGrid = (faceArray) => {
+          return clockwise
+            ? [faceArray[6], faceArray[3], faceArray[0],
+               faceArray[7], faceArray[4], faceArray[1],
+               faceArray[8], faceArray[5], faceArray[2]]
+               
+            : [faceArray[2], faceArray[5], faceArray[8],
+               faceArray[1], faceArray[4], faceArray[7],
+               faceArray[0], faceArray[3], faceArray[6]];
+        };
+
+        this.faces[face] = rotateGrid(this.faces[face]);
+
+        // Front face affects U, D, L, R edges
+        if (face === 'F') {
+          const U = this.faces.U;
+          const D = this.faces.D;
+          const L = this.faces.L;
+          const R = this.faces.R;
+
+          if (clockwise) {
+            const temp = [U[6], U[7], U[8]];
+            U[6] = L[8]; U[7] = L[5]; U[8] = L[2];
+            L[8] = D[2]; L[5] = D[1]; L[2] = D[0];
+            D[2] = R[0]; D[1] = R[3]; D[0] = R[6];
+            R[0] = temp[0]; R[3] = temp[1]; R[6] = temp[2];
+          } else {
+            const temp = [U[6], U[7], U[8]];
+            U[6] = R[0]; U[7] = R[3]; U[8] = R[6];
+            R[0] = D[2]; R[3] = D[1]; R[6] = D[0];
+            D[2] = L[8]; D[1] = L[5]; D[0] = L[2];
+            L[8] = temp[0]; L[5] = temp[1]; L[2] = temp[2];
+          }
+        }
+      }
+
+      scramble(steps = 5) {
+        const moves = [];
+        for (let i = 0; i < steps; i++) {
+          const clockwise = Math.random() > 0.5;
+          this.rotateFace('F', clockwise);
+          moves.push({ face: 'F', clockwise });
+        }
+        return moves;
+      }
+
+      solve(scrambleMoves) {
+        const reversed = scrambleMoves.slice().reverse().map(m => ({
+          face: m.face,
+          clockwise: !m.clockwise
+        }));
+
+        for (let move of reversed) {
+          this.rotateFace(move.face, move.clockwise);
+          appendLog(`Solving: ${move.face} ${move.clockwise ? 'CW' : 'CCW'}`);
+        }
+      }
+
+      printState() {
+        return Object.entries(this.faces)
+          .map(([face, arr]) => `${face}: ${arr.join('')}`)
+          .join('\n');
+      }
+    }
+
+    let cube = new RubiksCube();
+    let scrambleMoves = [];
+
+    function scrambleCube() {
+      scrambleMoves = cube.scramble(5);
+      document.getElementById("output").innerText = "Scrambled Cube:\n";
+      scrambleMoves.forEach((move, index) => {
+        appendLog(`Move ${index + 1}: ${move.face} ${move.clockwise ? 'CW' : 'CCW'}`);
+      });
+      appendLog("\nCurrent State:\n" + cube.printState());
+    }
+
+    function solveCube() {
+      cube.solve(scrambleMoves);
+      appendLog("\nSolved!\nCurrent State:\n" + cube.printState());
+    }
+
+    function appendLog(text) {
+      const output = document.getElementById("output");
+      output.innerText += text + "\n";
+    }
+  </script>
+
+</body>
+</html>
